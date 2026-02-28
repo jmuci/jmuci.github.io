@@ -780,7 +780,64 @@
 
       footer { flex-direction: column; gap: 8px; padding: 24px; }
     }
-  </style>
+  
+    /* ---- CAPTCHA MODAL ---- */
+    .captcha-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .captcha-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .captcha-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 40px 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      position: relative;
+      max-width: 380px;
+      width: 90%;
+    }
+    .captcha-close {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+    .captcha-close:hover { color: var(--heading); }
+    .captcha-modal-title {
+      font-family: 'Fraunces', serif;
+      font-size: 20px;
+      color: var(--heading);
+      margin: 0;
+    }
+    .captcha-modal-sub {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      margin: 0;
+    }
+</style>
+
+  <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
 </head>
 <body>
 
@@ -801,7 +858,7 @@
 <!-- HERO -->
 <div class="hero">
   <div class="hero-text">
-    <p class="hero-eyebrow">Available for new challenges</p>
+    <p class="hero-eyebrow">Open to New Challenges</p>
     <h1 class="hero-name">José<br><em>M.</em><br>Mucientes</h1>
     <p class="hero-title">Senior Android &amp; Full-Stack<br>Product Engineer</p>
     <p class="hero-tagline">
@@ -1078,7 +1135,7 @@
       <div class="section-line"></div>
     </div>
     <div class="resume-cards">
-      <a href="resume/jmucientes - Resume - Sr Android.pdf" download class="resume-card reveal">
+      <div role="button" tabindex="0" class="resume-card reveal" data-cv-idx="0">
         <div class="resume-card-icon">📱</div>
         <h3 class="resume-card-title">Senior Android Engineer</h3>
         <p class="resume-card-desc">
@@ -1086,8 +1143,8 @@
           and everything mobile. Right for teams looking for a dedicated Android expert.
         </p>
         <span class="resume-card-cta">↓ Download PDF</span>
-      </a>
-      <a href="resume/jmucientes - Resume - Senior Product Eng.pdf" download class="resume-card reveal">
+      </div>
+      <div role="button" tabindex="0" class="resume-card reveal" data-cv-idx="1">
         <div class="resume-card-icon">⚙️</div>
         <h3 class="resume-card-title">Senior Product Engineer</h3>
         <p class="resume-card-desc">
@@ -1095,7 +1152,7 @@
           microservices, stakeholder management. For teams looking for end-to-end ownership.
         </p>
         <span class="resume-card-cta">↓ Download PDF</span>
-      </a>
+      </div>
     </div>
   </div>
 </section>
@@ -1112,13 +1169,6 @@
         </p>
       </div>
       <div class="contact-links reveal">
-        <a href="#" id="email-link" class="contact-link" onclick="revealEmail(event)">
-          <span class="contact-link-icon">✉️</span>
-          <div>
-            <p class="contact-link-label">Email</p>
-            <p class="contact-link-val" id="email-display">click to reveal</p>
-          </div>
-        </a>
         <a href="https://linkedin.com/in/jmucientes" target="_blank" class="contact-link">
           <span class="contact-link-icon">💼</span>
           <div>
@@ -1144,6 +1194,20 @@
   <p class="footer-loc">📍 Colorado, USA</p>
 </footer>
 
+
+<!-- CAPTCHA MODAL -->
+<div id="captcha-overlay" class="captcha-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="captcha-title">
+  <div class="captcha-box">
+    <button class="captcha-close" id="captcha-close" aria-label="Close">&#x2715;</button>
+    <p class="captcha-modal-title" id="captcha-title">Verify you're human</p>
+    <p class="captcha-modal-sub">Complete the check to download the CV.</p>
+    <div class="h-captcha"
+         data-sitekey="d37e428e-8eb2-44c2-b3e6-a7d045548d52"
+         data-callback="onCaptchaPass"
+         data-theme="dark"></div>
+  </div>
+</div>
+
 <script>
   // Scroll reveal
   const revealEls = document.querySelectorAll('.reveal');
@@ -1159,3 +1223,51 @@
   }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
   
+  revealEls.forEach(el => observer.observe(el));
+
+  // CV download CAPTCHA gate
+  const _cvs = [
+    atob('cmVzdW1lL2ptdWNpZW50ZXMgLSBSZXN1bWUgLSBTciBBbmRyb2lkLnBkZg=='),
+    atob('cmVzdW1lL2ptdWNpZW50ZXMgLSBSZXN1bWUgLSBTZW5pb3IgUHJvZHVjdCBFbmcucGRm')
+  ];
+  let _pendingCv = null;
+
+  function openCaptcha(idx) {
+    _pendingCv = _cvs[idx];
+    const overlay = document.getElementById('captcha-overlay');
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+    if (window.hcaptcha) hcaptcha.reset();
+  }
+
+  function closeCaptcha() {
+    const overlay = document.getElementById('captcha-overlay');
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden', 'true');
+    _pendingCv = null;
+  }
+
+  function onCaptchaPass() {
+    if (!_pendingCv) return;
+    const a = document.createElement('a');
+    a.href = _pendingCv;
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(closeCaptcha, 400);
+  }
+
+  document.querySelectorAll('[data-cv-idx]').forEach(card => {
+    const idx = parseInt(card.dataset.cvIdx, 10);
+    card.addEventListener('click', () => openCaptcha(idx));
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCaptcha(idx); }
+    });
+  });
+
+  document.getElementById('captcha-close').addEventListener('click', closeCaptcha);
+  document.getElementById('captcha-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeCaptcha();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCaptcha(); });
